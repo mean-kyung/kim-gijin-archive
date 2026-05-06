@@ -6,9 +6,9 @@ import React, { useMemo, useState } from "react";
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRrOguwmu54RaYHhFSOo0ybgZJ3AgHgNRDdd1dwTvkB1fsDqNHdUewN2Xgl3BtOx1ylyUPzUaJZCnqz/pubhtml";
 
 const PANEL_TRANSITION = {
-  type: "tween",
+  type: "tween" as const,
   duration: 0.45,
-  ease: [0.22, 1, 0.36, 1],
+  ease: [0.22, 1, 0.36, 1] as const,
 };
 
 const SAMPLE_ROWS = [
@@ -74,7 +74,7 @@ function simpleCsvToRows(text: string) {
 }
 
 function useSheetData() {
-  const [rows, setRows] = React.useState(SAMPLE_ROWS);
+const [rows, setRows] = React.useState<any[]>(SAMPLE_ROWS);
 
   React.useEffect(() => {
     if (!SHEET_CSV_URL) return;
