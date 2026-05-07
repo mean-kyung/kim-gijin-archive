@@ -122,6 +122,22 @@ function tags(value: string) {
     .filter(Boolean);
 }
 
+function splitTerms(value: string) {
+  return String(value || "")
+    .split(/[,，·/]/)
+    .map((term) => term.trim())
+    .filter(Boolean);
+}
+
+function getContextTerms(rows: any[]) {
+  const terms = rows.flatMap((row) => [
+    ...splitTerms(row.related_people),
+    ...splitTerms(row.historical_context),
+  ]);
+
+  return Array.from(new Set(terms)).filter((term) => term.length <= 16);
+}
+
 function getPanelWidths(mode: string) {
   if (mode === "life") return { life: "64%", work: "36%" };
   if (mode === "work") return { life: "36%", work: "64%" };
@@ -133,7 +149,11 @@ export default function Page() {
 
   const [mode, setMode] = useState("both");
   const [query, setQuery] = useState("");
+  const [contextFilter, setContextFilter] = useState("");
   const [openWorkId, setOpenWorkId] = useState<string | null>(null);
+
+  const effectiveQuery = [query, contextFilter].filter(Boolean).join(" ");
+  const contextTerms = useMemo(() => getContextTerms(rows), [rows]);
 
   const lifeRows = useMemo(
     () => rows.filter((row: any) => row.category === "life").sort(sortRows),
@@ -146,13 +166,13 @@ export default function Page() {
   );
 
   const filteredLife = useMemo(
-    () => filterRows(lifeRows, query),
-    [lifeRows, query]
+    () => filterRows(lifeRows, effectiveQuery),
+    [lifeRows, effectiveQuery]
   );
 
   const filteredWork = useMemo(
-    () => filterRows(workRows, query),
-    [workRows, query]
+    () => filterRows(workRows, effectiveQuery),
+    [workRows, effectiveQuery]
   );
 
   const years = useMemo(() => {
@@ -171,7 +191,7 @@ export default function Page() {
   const panelWidths = getPanelWidths(mode);
 
   return (
-    <div className="h-screen bg-[#151515] p-3 font-['Noto_Sans_KR','Noto_Sans',Arial,sans-serif] text-[#111]">
+    <div className="h-screen bg-[#151515] p-3 font-['Noto_Sans_KR','Noto_Sans',Arial,sans-serif] tracking-[-0.03em] text-[#111]">
       <div className="flex h-full flex-col gap-3 overflow-hidden">
         <main className="flex min-h-0 flex-1 gap-3 overflow-hidden">
           <motion.section
@@ -194,6 +214,7 @@ export default function Page() {
                 mode={mode}
                 openWorkId={openWorkId}
                 setOpenWorkId={setOpenWorkId}
+                setContextFilter={setContextFilter}
               />
             </ArchiveCard>
           </motion.section>
@@ -218,12 +239,19 @@ export default function Page() {
                 mode={mode}
                 openWorkId={openWorkId}
                 setOpenWorkId={setOpenWorkId}
+                setContextFilter={setContextFilter}
               />
             </ArchiveCard>
           </motion.section>
         </main>
 
-        <SearchCard query={query} setQuery={setQuery} />
+        <SearchCard
+          query={query}
+          setQuery={setQuery}
+          contextFilter={contextFilter}
+          setContextFilter={setContextFilter}
+          contextTerms={contextTerms}
+        />
       </div>
     </div>
   );
@@ -272,23 +300,54 @@ function ArchiveCard({
 function SearchCard({
   query,
   setQuery,
+  contextFilter,
+  setContextFilter,
+  contextTerms,
 }: {
   query: string;
   setQuery: (value: string) => void;
+  contextFilter: string;
+  setContextFilter: (value: string) => void;
+  contextTerms: string[];
 }) {
   return (
-    <footer className="grid h-20 shrink-0 grid-cols-[1fr_220px] overflow-hidden rounded-[22px] border-2 border-black bg-[#f5f0ed]">
-      <label className="flex items-center gap-4 px-7">
-        <span className="h-3.5 w-3.5 rounded-full bg-black" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="사건이나 작품 검색"
-          className="w-full bg-transparent text-[15px] outline-none placeholder:text-black/35"
-        />
-      </label>
+    <footer className="grid h-28 shrink-0 grid-cols-[1fr_220px] overflow-hidden rounded-[22px] border-2 border-black bg-[#f5f0ed]">
+      <div className="flex flex-col justify-center gap-3 px-7">
+        <label className="flex items-center gap-4">
+          <span className="h-3.5 w-3.5 rounded-full bg-black" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="사건, 작품, 인물, 맥락 검색"
+            className="w-full bg-transparent text-[15px] tracking-[-0.03em] outline-none placeholder:text-black/35"
+          />
+        </label>
 
-      <div className="flex items-center justify-center border-l border-black text-center text-[17px] font-semibold">
+        <div className="flex gap-2 overflow-x-auto pb-1 text-[12px]">
+          {contextFilter && (
+            <button
+              onClick={() => setContextFilter("")}
+              className="shrink-0 rounded-full border border-black bg-black px-3 py-1 text-white"
+            >
+              필터 해제 ×
+            </button>
+          )}
+
+          {contextTerms.slice(0, 18).map((term) => (
+            <button
+              key={term}
+              onClick={() => setContextFilter(term)}
+              className={`shrink-0 rounded-full border border-black px-3 py-1 transition ${
+                contextFilter === term ? "bg-black text-white" : "bg-transparent hover:bg-black hover:text-white"
+              }`}
+            >
+              {term}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center border-l border-black text-center text-[17px] font-semibold tracking-[-0.03em]">
         팔봉 김기진
       </div>
     </footer>
@@ -303,6 +362,7 @@ function TimelineList({
   mode,
   openWorkId,
   setOpenWorkId,
+  setContextFilter,
 }: any) {
   return (
     <div>
@@ -322,7 +382,12 @@ function TimelineList({
             </div>
 
             {type === "life" ? (
-              <LifeContent lifeRows={life} workRows={works} compact={mode === "work"} />
+              <LifeContent
+                lifeRows={life}
+                workRows={works}
+                compact={mode === "work"}
+                setContextFilter={setContextFilter}
+              />
             ) : (
               <WorkContent
                 workRows={works}
@@ -330,6 +395,7 @@ function TimelineList({
                 compact={mode === "life"}
                 openWorkId={openWorkId}
                 setOpenWorkId={setOpenWorkId}
+                setContextFilter={setContextFilter}
               />
             )}
           </section>
@@ -339,13 +405,16 @@ function TimelineList({
   );
 }
 
-function LifeContent({ lifeRows, workRows, compact }: any) {
+function LifeContent({ lifeRows, workRows, compact, setContextFilter }: any) {
   if (compact) {
     return (
-      <div className="space-y-2 text-[14px] leading-6">
+      <div className="space-y-3 text-[14px] leading-6">
         {lifeRows.length ? (
           lifeRows.map((row: any) => (
-            <p key={row.id}>{row.life_keyword || row.title}</p>
+            <div key={row.id}>
+              <p>{row.life_keyword || row.title}</p>
+              <ContextStrip row={row} setContextFilter={setContextFilter} />
+            </div>
           ))
         ) : (
           <p className="text-black/35">생애 정보 없음</p>
@@ -366,6 +435,7 @@ function LifeContent({ lifeRows, workRows, compact }: any) {
               <p className="break-keep text-[15px] leading-7">
                 {row.description || row.title}
               </p>
+              <ContextStrip row={row} setContextFilter={setContextFilter} />
               <TagLine row={row} />
             </article>
           ))
@@ -396,13 +466,17 @@ function WorkContent({
   compact,
   openWorkId,
   setOpenWorkId,
+  setContextFilter,
 }: any) {
   if (compact) {
     return (
-      <div className="space-y-2 text-[14px] leading-6">
+      <div className="space-y-3 text-[14px] leading-6">
         {workRows.length ? (
           workRows.map((row: any) => (
-            <p key={row.id}>{row.work_title || row.title}</p>
+            <div key={row.id}>
+              <p>{row.work_title || row.title}</p>
+              <ContextStrip row={row} setContextFilter={setContextFilter} />
+            </div>
           ))
         ) : (
           <p className="text-black/35">작품 정보 없음</p>
@@ -430,8 +504,16 @@ function WorkContent({
                 <span>{row.publication || row.source}</span>
               </button>
 
+              <ContextStrip row={row} setContextFilter={setContextFilter} />
+
               <AnimatePresence initial={false}>
-                {isOpen && <WorkDetail row={row} lifeRows={lifeRows} />}
+                {isOpen && (
+                  <WorkDetail
+                    row={row}
+                    lifeRows={lifeRows}
+                    setContextFilter={setContextFilter}
+                  />
+                )}
               </AnimatePresence>
             </article>
           );
@@ -443,7 +525,7 @@ function WorkContent({
   );
 }
 
-function WorkDetail({ row, lifeRows }: any) {
+function WorkDetail({ row, lifeRows, setContextFilter }: any) {
   return (
     <motion.div
       initial={{ height: 0, opacity: 0 }}
@@ -474,7 +556,7 @@ function WorkDetail({ row, lifeRows }: any) {
             {row.work_title || row.title}
           </p>
 
-          <p className="mb-4 text-[12px] uppercase tracking-[0.12em] text-black/50">
+          <p className="mb-4 text-[12px] uppercase tracking-[0.08em] text-black/50">
             {[row.genre, row.publication || row.source].filter(Boolean).join(" · ")}
           </p>
 
@@ -482,33 +564,95 @@ function WorkDetail({ row, lifeRows }: any) {
             {row.detail || row.description}
           </p>
 
-          <div className="mt-4 space-y-2 text-[13px] text-black/65">
-            {lifeRows?.[0]?.life_keyword && (
-              <p>
-                <span className="mr-2 font-semibold">동시기 생애</span>
-                {lifeRows[0].life_keyword}
-              </p>
-            )}
-
-            {row.related_people && (
-              <p>
-                <span className="mr-2 font-semibold">관련 인물</span>
-                {row.related_people}
-              </p>
-            )}
-
-            {row.historical_context && (
-              <p>
-                <span className="mr-2 font-semibold">역사 맥락</span>
-                {row.historical_context}
-              </p>
-            )}
-          </div>
+          <ContextBox
+            row={row}
+            lifeRows={lifeRows}
+            setContextFilter={setContextFilter}
+          />
 
           <TagLine row={row} boxed />
         </div>
       </div>
     </motion.div>
+  );
+}
+
+function ContextStrip({ row, setContextFilter }: any) {
+  const people = splitTerms(row.related_people);
+  const contexts = splitTerms(row.historical_context);
+  const list = [...people, ...contexts].slice(0, 5);
+
+  if (!list.length) return null;
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-1.5 text-[12px]">
+      {list.map((term) => (
+        <button
+          key={term}
+          onClick={() => setContextFilter(term)}
+          className="rounded-full border border-black/35 px-2.5 py-0.5 text-black/65 transition hover:bg-black hover:text-white"
+        >
+          {term}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ContextBox({ row, lifeRows, setContextFilter }: any) {
+  const people = splitTerms(row.related_people);
+  const contexts = splitTerms(row.historical_context);
+  const lifeContext = lifeRows?.[0]?.life_keyword;
+
+  if (!people.length && !contexts.length && !lifeContext) return null;
+
+  return (
+    <div className="mt-5 border border-black bg-[#f5f0ed] p-4 text-[13px] leading-6">
+      <p className="mb-3 font-semibold">관계와 맥락</p>
+
+      {lifeContext && (
+        <ContextRow
+          label="동시기 생애"
+          terms={[lifeContext]}
+          setContextFilter={setContextFilter}
+        />
+      )}
+
+      {!!people.length && (
+        <ContextRow
+          label="관련 인물"
+          terms={people}
+          setContextFilter={setContextFilter}
+        />
+      )}
+
+      {!!contexts.length && (
+        <ContextRow
+          label="문학사 맥락"
+          terms={contexts}
+          setContextFilter={setContextFilter}
+        />
+      )}
+    </div>
+  );
+}
+
+function ContextRow({ label, terms, setContextFilter }: any) {
+  return (
+    <div className="mb-2 grid grid-cols-[82px_1fr] gap-3 last:mb-0">
+      <span className="font-semibold text-black/60">{label}</span>
+      <div className="flex flex-wrap gap-1.5">
+        {terms.map((term: string) => (
+          <button
+            key={term}
+            onClick={() => setContextFilter(term)}
+            className="rounded-full border border-black px-2 py-0.5 transition hover:bg-black hover:text-white"
+          >
+            {term}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
