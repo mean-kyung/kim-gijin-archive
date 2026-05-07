@@ -76,10 +76,7 @@ function useSheetData() {
   React.useEffect(() => {
     fetch(`${SHEET_CSV_URL}&cacheBust=${Date.now()}`)
       .then((res) => res.text())
-      .then((text) => {
-        const parsed = parseCsv(text);
-        setRows(parsed);
-      })
+      .then((text) => setRows(parseCsv(text)))
       .catch(() => setRows(SAMPLE_ROWS));
   }, []);
 
@@ -115,10 +112,7 @@ function clean(value: string) {
 function filterRows(rows: any[], query: string) {
   const q = clean(query);
   if (!q) return rows;
-
-  return rows.filter((row) =>
-    clean(Object.values(row).join(" ")).includes(q)
-  );
+  return rows.filter((row) => clean(Object.values(row).join(" ")).includes(q));
 }
 
 function tags(value: string) {
@@ -177,109 +171,105 @@ export default function Page() {
   const panelWidths = getPanelWidths(mode);
 
   return (
-    <div className="min-h-screen bg-[#151515] p-3 font-['Noto_Sans_KR','Noto_Sans',Arial,sans-serif] text-[#111]">
-      <div className="flex h-[calc(100vh-24px)] gap-3 overflow-hidden">
-        <motion.section
-          animate={{ width: panelWidths.life }}
-          transition={PANEL_TRANSITION}
-          className="min-w-0"
-        >
-          <ArchiveCard
-            title="작가 생애"
-            active={mode === "life"}
-            onTitleClick={() => setMode(mode === "life" ? "both" : "life")}
-            tone="pink"
+    <div className="h-screen bg-[#151515] p-3 font-['Noto_Sans_KR','Noto_Sans',Arial,sans-serif] text-[#111]">
+      <div className="flex h-full flex-col gap-3 overflow-hidden">
+        <main className="flex min-h-0 flex-1 gap-3 overflow-hidden">
+          <motion.section
+            animate={{ width: panelWidths.life }}
+            transition={PANEL_TRANSITION}
+            className="min-w-0"
           >
-            <CardIntro
-              label="Information"
-              title="팔봉 김기진"
-              description="작가 김기진의 생애 사건을 작품 발표 연보와 나란히 배치하여, 작가의 이동과 문학적 조건을 함께 읽는다."
-              compact={mode === "work"}
-            />
+            <ArchiveCard
+              title="Information"
+              heading="작가 생애"
+              active={mode === "life"}
+              tone="pink"
+              onTitleClick={() => setMode(mode === "life" ? "both" : "life")}
+            >
+              <TimelineList
+                type="life"
+                years={years}
+                lifeRows={filteredLife}
+                workRows={workRows}
+                mode={mode}
+                openWorkId={openWorkId}
+                setOpenWorkId={setOpenWorkId}
+              />
+            </ArchiveCard>
+          </motion.section>
 
-            <TimelineList
-              type="life"
-              years={years}
-              lifeRows={filteredLife}
-              workRows={workRows}
-              mode={mode}
-              openWorkId={openWorkId}
-              setOpenWorkId={setOpenWorkId}
-            />
-          </ArchiveCard>
-        </motion.section>
-
-        <motion.section
-          animate={{ width: panelWidths.work }}
-          transition={PANEL_TRANSITION}
-          className="min-w-0"
-        >
-          <ArchiveCard
-            title="작품 연보"
-            active={mode === "work"}
-            onTitleClick={() => setMode(mode === "work" ? "both" : "work")}
-            tone="ivory"
+          <motion.section
+            animate={{ width: panelWidths.work }}
+            transition={PANEL_TRANSITION}
+            className="min-w-0"
           >
-            <CardIntro
-              label="Select Work"
-              title="작품 연보"
-              description="작품을 선택하면 발표 매체, 장르, 관련 인물과 문학사적 맥락을 함께 확인할 수 있다."
-              compact={mode === "life"}
-            />
+            <ArchiveCard
+              title="Select Work"
+              heading="작품 연보"
+              active={mode === "work"}
+              tone="ivory"
+              onTitleClick={() => setMode(mode === "work" ? "both" : "work")}
+            >
+              <TimelineList
+                type="work"
+                years={years}
+                lifeRows={lifeRows}
+                workRows={filteredWork}
+                mode={mode}
+                openWorkId={openWorkId}
+                setOpenWorkId={setOpenWorkId}
+              />
+            </ArchiveCard>
+          </motion.section>
+        </main>
 
-            <TimelineList
-              type="work"
-              years={years}
-              lifeRows={lifeRows}
-              workRows={filteredWork}
-              mode={mode}
-              openWorkId={openWorkId}
-              setOpenWorkId={setOpenWorkId}
-            />
-          </ArchiveCard>
-        </motion.section>
+        <SearchCard query={query} setQuery={setQuery} />
       </div>
-
-      <SearchBar query={query} setQuery={setQuery} />
     </div>
   );
 }
 
 function ArchiveCard({
   title,
+  heading,
   active,
-  onTitleClick,
   tone,
+  onTitleClick,
   children,
 }: {
   title: string;
+  heading: string;
   active: boolean;
-  onTitleClick: () => void;
   tone: "pink" | "ivory";
+  onTitleClick: () => void;
   children: React.ReactNode;
 }) {
-  const bg = tone === "pink" ? "bg-[#f3cdd1]" : "bg-[#f5f0ed]";
+  const bg = tone === "pink" ? "bg-[#f4cdcf]" : "bg-[#f5f0ed]";
 
   return (
     <div className={`relative h-full overflow-hidden rounded-[22px] border-2 border-black ${bg}`}>
-      <div className="absolute left-4 top-4 z-20 h-3.5 w-3.5 rounded-full bg-black" />
-      <div className="absolute right-4 top-4 z-20 h-3.5 w-3.5 rounded-full bg-black" />
+      <div className="absolute left-4 top-4 z-30 h-3.5 w-3.5 rounded-full bg-black" />
+      <div className="absolute right-4 top-4 z-30 h-3.5 w-3.5 rounded-full bg-black" />
 
       <button
         onClick={onTitleClick}
-        className="sticky top-0 z-10 flex h-12 w-full items-center justify-center border-b border-black/15 bg-inherit text-[15px] outline-none"
+        className="sticky top-0 z-20 flex h-12 w-full items-center justify-center border-b border-black/70 bg-inherit text-[15px] outline-none"
       >
         <span className={active ? "font-semibold" : "font-normal"}>{title}</span>
       </button>
 
-      <div className="h-[calc(100%-48px)] overflow-y-auto px-5 pb-28 pt-5">
+      <div className="border-b border-black/70 px-6 py-7 text-center">
+        <h1 className="text-3xl font-semibold tracking-[-0.04em]">{heading}</h1>
+      </div>
+
+      <div className="h-[calc(100%-121px)] overflow-y-auto px-6 pb-8 pt-5">
         {children}
       </div>
     </div>
   );
 }
 
-function SearchBar({
+function SearchCard({
   query,
   setQuery,
 }: {
@@ -287,48 +277,21 @@ function SearchBar({
   setQuery: (value: string) => void;
 }) {
   return (
-    <div className="fixed bottom-5 left-1/2 z-50 w-[min(760px,calc(100vw-40px))] -translate-x-1/2 rounded-full border-2 border-black bg-[#f5f0ed] px-5 py-3 shadow-[0_8px_0_rgba(0,0,0,0.18)]">
-      <label className="flex items-center gap-3">
-        <span className="h-2.5 w-2.5 rounded-full bg-black" />
+    <footer className="grid h-20 shrink-0 grid-cols-[1fr_220px] overflow-hidden rounded-[22px] border-2 border-black bg-[#f5f0ed]">
+      <label className="flex items-center gap-4 px-7">
+        <span className="h-3.5 w-3.5 rounded-full bg-black" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="사건이나 작품 검색"
-          className="w-full bg-transparent text-[15px] outline-none placeholder:text-black/40"
+          className="w-full bg-transparent text-[15px] outline-none placeholder:text-black/35"
         />
-        <span className="whitespace-nowrap text-[13px] font-semibold">
-          팔봉 김기진
-        </span>
       </label>
-    </div>
-  );
-}
 
-function CardIntro({
-  label,
-  title,
-  description,
-  compact,
-}: {
-  label: string;
-  title: string;
-  description: string;
-  compact: boolean;
-}) {
-  return (
-    <section className={compact ? "mb-8 pt-3" : "mb-10 pt-8"}>
-      <p className="mb-5 text-center text-[15px]">{label}</p>
-      <div className={compact ? "text-center" : "mx-auto max-w-xl text-center"}>
-        <h1 className={compact ? "text-2xl font-semibold" : "text-4xl font-semibold leading-tight"}>
-          {title}
-        </h1>
-        {!compact && (
-          <p className="mx-auto mt-6 max-w-lg text-[15px] leading-7">
-            {description}
-          </p>
-        )}
+      <div className="flex items-center justify-center border-l border-black text-center text-[17px] font-semibold">
+        팔봉 김기진
       </div>
-    </section>
+    </footer>
   );
 }
 
@@ -342,26 +305,24 @@ function TimelineList({
   setOpenWorkId,
 }: any) {
   return (
-    <div className="space-y-7">
+    <div>
       {years.map((year: string) => {
         const life = lifeRows.filter((row: any) => row.year === year);
         const works = workRows.filter((row: any) => row.year === year);
 
         return (
-          <section key={`${type}-${year}`} className="border-t border-black pt-4">
-            <div className="mb-4 grid grid-cols-[70px_1fr] gap-4">
-              <p className="text-[18px] font-semibold">{year}</p>
-              <p className="text-[13px] leading-5 text-black/55">
+          <section key={`${type}-${year}`} className="border-b border-black py-5">
+            <div className="mb-5 grid grid-cols-[76px_1fr] gap-3">
+              <p className="text-[22px] font-semibold tracking-[-0.04em]">
+                {year}
+              </p>
+              <p className="pt-1 text-[13px] leading-5 text-black/55">
                 {life[0]?.life_keyword || works[0]?.life_keyword || "기록 없음"}
               </p>
             </div>
 
             {type === "life" ? (
-              <LifeContent
-                lifeRows={life}
-                workRows={works}
-                compact={mode === "work"}
-              />
+              <LifeContent lifeRows={life} workRows={works} compact={mode === "work"} />
             ) : (
               <WorkContent
                 workRows={works}
@@ -414,9 +375,7 @@ function LifeContent({ lifeRows, workRows, compact }: any) {
       </div>
 
       <aside className="border-l border-black pl-4">
-        <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em]">
-          같은 해 작품
-        </p>
+        <p className="mb-3 text-[12px] font-semibold">같은 해 작품</p>
         {workRows.length ? (
           workRows.map((work: any) => (
             <p key={work.id} className="mb-3 break-keep text-[14px] leading-5">
@@ -424,7 +383,7 @@ function LifeContent({ lifeRows, workRows, compact }: any) {
             </p>
           ))
         ) : (
-          <p className="text-[14px] text-black/35">작품 정보 없음</p>
+          <p className="text-[14px] text-black/35">-</p>
         )}
       </aside>
     </div>
@@ -459,16 +418,14 @@ function WorkContent({
           const isOpen = openWorkId === row.id;
 
           return (
-            <article key={row.id} className="border-b border-black py-4">
+            <article key={row.id} className="border-b border-black py-4 last:border-b-0">
               <button
                 onClick={() => setOpenWorkId(isOpen ? null : row.id)}
-                className="grid w-full grid-cols-[58px_48px_minmax(0,1fr)_70px_120px] items-start gap-3 text-left text-[14px] outline-none"
+                className="grid w-full grid-cols-[54px_46px_minmax(0,1fr)_64px_110px] items-start gap-3 text-left text-[14px] outline-none"
               >
                 <span>{row.month}</span>
                 <span>{row.day}</span>
-                <span className="font-semibold">
-                  {row.work_title || row.title}
-                </span>
+                <span className="font-semibold">{row.work_title || row.title}</span>
                 <span>{row.genre}</span>
                 <span>{row.publication || row.source}</span>
               </button>
