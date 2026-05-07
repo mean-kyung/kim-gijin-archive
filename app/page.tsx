@@ -8,7 +8,7 @@ const SHEET_CSV_URL =
 
 const PANEL_TRANSITION: Transition = {
   type: "tween",
-  duration: 0.55,
+  duration: 0.5,
   ease: [0.22, 1, 0.36, 1],
 };
 
@@ -118,8 +118,6 @@ function useSheetData() {
   const [rows, setRows] = React.useState<any[]>(SAMPLE_ROWS);
 
   React.useEffect(() => {
-    if (!SHEET_CSV_URL) return;
-
     fetch(`${SHEET_CSV_URL}&cacheBust=${Date.now()}`)
       .then((res) => res.text())
       .then((text) => {
@@ -148,11 +146,9 @@ function sortRows(a: any, b: any) {
   if (onlyNumber(a.year) !== onlyNumber(b.year)) {
     return onlyNumber(a.year) - onlyNumber(b.year);
   }
-
   if (onlyNumber(a.month) !== onlyNumber(b.month)) {
     return onlyNumber(a.month) - onlyNumber(b.month);
   }
-
   return onlyNumber(a.day) - onlyNumber(b.day);
 }
 
@@ -163,7 +159,6 @@ function clean(value: string) {
 function filterRows(rows: any[], query: string) {
   const q = clean(query);
   if (!q) return rows;
-
   return rows.filter((row) =>
     clean(Object.values(row).join(" ")).includes(q)
   );
@@ -178,23 +173,14 @@ function tags(value: string) {
 
 function getPanelWidths(mode: string) {
   if (mode === "life") {
-    return {
-      life: "calc(100% - 300px)",
-      work: "300px",
-    };
+    return { life: "68%", work: "32%" };
   }
 
   if (mode === "work") {
-    return {
-      life: "300px",
-      work: "calc(100% - 300px)",
-    };
+    return { life: "32%", work: "68%" };
   }
 
-  return {
-    life: "50%",
-    work: "50%",
-  };
+  return { life: "50%", work: "50%" };
 }
 
 export default function Page() {
@@ -240,232 +226,260 @@ export default function Page() {
   const panelWidths = getPanelWidths(mode);
 
   return (
-    <div className="min-h-screen bg-[#e9e6d8] text-[#191919]">
-      <div className="grid min-h-screen grid-cols-[38%_62%]">
-        <aside className="relative overflow-hidden bg-[#aeb9aa] px-8 py-8">
-          <div className="absolute left-8 top-8 font-serif text-[10vw] font-black leading-[0.72] tracking-[-0.12em]">
-            Kim
-            <br />
-            Gi
-            <br />
-            Jin
-          </div>
+    <div className="min-h-screen bg-[#141414] p-2 text-[#111]">
+      <main className="grid h-[calc(100vh-16px)] grid-cols-[1fr_1fr] grid-rows-[1fr_136px] gap-2 overflow-hidden">
+        <motion.section
+          animate={{ width: panelWidths.life }}
+          transition={PANEL_TRANSITION}
+          className="col-start-1 row-start-1 row-span-1 min-w-0"
+        >
+          <CardShell
+            title="Writer Life"
+            active={mode === "life"}
+            onClick={() => setMode(mode === "life" ? "both" : "life")}
+            className="h-full bg-[#f6cfd2]"
+          >
+            <LifeHero compact={mode === "work"} />
+            <TimelineList
+              type="life"
+              years={years}
+              lifeRows={filteredLife}
+              workRows={workRows}
+              mode={mode}
+              openWorkId={openWorkId}
+              setOpenWorkId={setOpenWorkId}
+            />
+          </CardShell>
+        </motion.section>
 
-          <div className="absolute right-8 top-12 max-w-36 text-right font-serif text-xl leading-5 tracking-[-0.06em]">
-            Part of
-            <br />
-            Korean
-            <br />
-            Modern
-            <br />
-            Literature
-          </div>
+        <motion.section
+          animate={{ width: panelWidths.work }}
+          transition={PANEL_TRANSITION}
+          className="col-start-2 row-start-1 row-span-2 min-w-0"
+        >
+          <CardShell
+            title="Select Work"
+            active={mode === "work"}
+            onClick={() => setMode(mode === "work" ? "both" : "work")}
+            className="h-full bg-[#f3eeee]"
+          >
+            <WorkHero compact={mode === "life"} />
+            <TimelineList
+              type="work"
+              years={years}
+              lifeRows={lifeRows}
+              workRows={filteredWork}
+              mode={mode}
+              openWorkId={openWorkId}
+              setOpenWorkId={setOpenWorkId}
+            />
+          </CardShell>
+        </motion.section>
 
-          <div className="absolute bottom-10 left-8 right-8">
-            <p className="mb-4 max-w-md rotate-[-8deg] bg-[#f3efe1] px-5 py-4 text-sm leading-6 shadow-md">
-              팔봉 김기진의 생애와 작품 발표 이력을 교차해 읽는 작가론 연보.
-            </p>
-
-            <div className="mt-16 font-serif text-[8vw] font-black leading-[0.75] tracking-[-0.14em]">
-              팔봉
-              <br />
-              김기진
+        <section className="col-start-1 row-start-2 grid grid-cols-[190px_1fr] gap-2">
+          <div className="relative overflow-hidden rounded-[18px] border-2 border-black bg-[#f6cfd2]">
+            <div className="absolute left-4 top-4 h-4 w-4 rounded-full bg-black" />
+            <div className="absolute right-4 top-4 h-4 w-4 rounded-full bg-black" />
+            <div className="flex h-full items-center justify-center font-serif text-[8rem] font-black leading-none tracking-[-0.18em]">
+              ㄱ
             </div>
           </div>
-        </aside>
 
-        <section className="relative flex min-w-0 flex-col overflow-hidden bg-[#f4f1e5]">
-          <header className="flex items-start justify-between px-10 pb-7 pt-9">
-            <div>
-              <p className="mb-3 text-xs uppercase tracking-[0.24em] text-black/40">
-                Chronicle / Archive
-              </p>
-              <div className="flex gap-8">
-                <motion.button
-                  animate={{ width: panelWidths.life }}
-                  transition={PANEL_TRANSITION}
-                  onClick={() => setMode(mode === "life" ? "both" : "life")}
-                  className={`max-w-[430px] text-left font-serif text-5xl font-black leading-[0.9] tracking-[-0.09em] outline-none transition-colors ${
-                    mode === "life"
-                      ? "text-black"
-                      : "text-black/30 hover:text-black/70"
-                  }`}
-                >
-                  작가 생애
-                </motion.button>
-
-                <motion.button
-                  animate={{ width: panelWidths.work }}
-                  transition={PANEL_TRANSITION}
-                  onClick={() => setMode(mode === "work" ? "both" : "work")}
-                  className={`max-w-[430px] text-left font-serif text-5xl font-black leading-[0.9] tracking-[-0.09em] outline-none transition-colors ${
-                    mode === "work"
-                      ? "text-black"
-                      : "text-black/30 hover:text-black/70"
-                  }`}
-                >
-                  작품 연보
-                </motion.button>
-              </div>
-            </div>
-
-            <div className="max-w-xs text-right text-sm leading-5">
-              김기진의 생애 사건과 작품 발표를 같은 시간대 위에서 병치하여,
-              작가의 위치와 문학적 이동을 함께 읽는다.
-            </div>
-          </header>
-
-          <main className="relative h-[calc(100vh-170px)] overflow-y-auto px-10 pb-28">
-            <div className="absolute left-12 top-0 h-full border-l border-[#c779ad]/55" />
-            <div className="absolute right-12 top-0 h-full border-l border-[#c779ad]/55" />
-
-            <div className="space-y-10">
-              {years.map((year: any) => (
-                <YearRow
-                  key={year}
-                  year={year}
-                  mode={mode}
-                  panelWidths={panelWidths}
-                  lifeRows={filteredLife.filter((row: any) => row.year === year)}
-                  workRows={filteredWork.filter((row: any) => row.year === year)}
-                  allLifeRows={lifeRows.filter((row: any) => row.year === year)}
-                  allWorkRows={workRows.filter((row: any) => row.year === year)}
-                  openWorkId={openWorkId}
-                  setOpenWorkId={setOpenWorkId}
-                />
-              ))}
-            </div>
-          </main>
-
-          <footer className="absolute bottom-0 left-0 right-0 grid grid-cols-[1fr_190px] border-t border-black/10 bg-[#f4f1e5]/90 backdrop-blur">
-            <label className="flex h-20 items-center gap-4 px-10">
-              <span className="text-[#c779ad]">●</span>
+          <div className="relative rounded-[18px] border-2 border-black bg-[#f6cfd2] px-6 py-5">
+            <div className="absolute left-4 top-4 h-4 w-4 rounded-full bg-black" />
+            <div className="absolute right-4 top-4 h-4 w-4 rounded-full bg-black" />
+            <p className="mb-4 text-center text-sm">Search Archive</p>
+            <label className="flex items-center gap-3 rounded-full border border-black px-5 py-3">
+              <span className="text-sm">●</span>
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="검색어 입력"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-black/35"
+                placeholder="사건이나 작품 검색"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-black/40"
               />
             </label>
-
-            <div className="flex items-center justify-center border-l border-black/10 text-center font-serif text-2xl font-black leading-6 tracking-[-0.08em]">
-              팔봉
-              <br />
-              김기진
-            </div>
-          </footer>
+          </div>
         </section>
-      </div>
+      </main>
     </div>
   );
 }
 
-function YearRow({
-  year,
-  mode,
-  panelWidths,
-  lifeRows,
-  workRows,
-  allLifeRows,
-  allWorkRows,
-  openWorkId,
-  setOpenWorkId,
-}: any) {
+function CardShell({
+  title,
+  active,
+  onClick,
+  className,
+  children,
+}: {
+  title: string;
+  active: boolean;
+  onClick: () => void;
+  className: string;
+  children: React.ReactNode;
+}) {
   return (
-    <section className="relative">
-      <div className="mb-3 flex items-center gap-4">
-        <span className="h-2 w-2 rounded-full bg-[#c779ad]" />
-        <p className="font-serif text-4xl font-black tracking-[-0.08em]">
-          {year}
+    <div
+      className={`relative overflow-hidden rounded-[20px] border-2 border-black ${className}`}
+    >
+      <button
+        onClick={onClick}
+        className="absolute inset-x-0 top-0 z-20 flex h-12 items-center justify-center text-sm outline-none"
+      >
+        <span className={active ? "font-bold" : "font-normal"}>{title}</span>
+      </button>
+
+      <div className="absolute left-4 top-4 z-30 h-4 w-4 rounded-full bg-black" />
+      <div className="absolute right-4 top-4 z-30 h-4 w-4 rounded-full bg-black" />
+
+      <div className="h-full overflow-y-auto px-6 pb-8 pt-16">{children}</div>
+    </div>
+  );
+}
+
+function LifeHero({ compact }: { compact: boolean }) {
+  if (compact) {
+    return (
+      <div className="mb-8 pt-6 text-center">
+        <p className="font-serif text-4xl font-black tracking-[-0.1em]">
+          Life
         </p>
       </div>
+    );
+  }
 
-      <div className="flex items-stretch gap-0 border-y border-black/10">
-        <motion.div
-          animate={{ width: panelWidths.life }}
-          transition={PANEL_TRANSITION}
-          className="overflow-hidden border-r border-black/10"
-        >
-          <LifePanel
-            year={year}
-            lifeRows={lifeRows}
-            workRows={allWorkRows}
-            compact={mode === "work"}
-          />
-        </motion.div>
-
-        <motion.div
-          animate={{ width: panelWidths.work }}
-          transition={PANEL_TRANSITION}
-          className="overflow-hidden"
-        >
-          <WorkPanel
-            year={year}
-            workRows={workRows}
-            lifeRows={allLifeRows}
-            compact={mode === "life"}
-            openWorkId={openWorkId}
-            setOpenWorkId={setOpenWorkId}
-          />
-        </motion.div>
+  return (
+    <section className="flex min-h-[42vh] items-center justify-center text-center">
+      <div>
+        <p className="mb-5 text-sm">Information</p>
+        <h1 className="font-serif text-[5.4vw] font-black leading-[0.92] tracking-[-0.12em]">
+          Palbong
+          <br />
+          Kim Gijin
+          <br />
+          Chronicle
+        </h1>
+        <p className="mx-auto mt-8 max-w-md text-base leading-7">
+          작가 김기진의 생애 사건을 작품 발표 연보와 나란히 배치하여
+          문학적 이동과 시대적 조건을 함께 읽는다.
+        </p>
       </div>
     </section>
   );
 }
 
-function LifePanel({ lifeRows, workRows, compact }: any) {
+function WorkHero({ compact }: { compact: boolean }) {
   if (compact) {
     return (
-      <aside className="min-h-36 px-5 py-6">
-        <p className="mb-3 font-serif text-xl font-black tracking-[-0.06em]">
-          Life
+      <div className="mb-8 pt-6 text-center">
+        <p className="font-serif text-4xl font-black tracking-[-0.1em]">
+          Works
         </p>
-        {lifeRows.length ? (
-          lifeRows.map((row: any) => (
-            <p key={row.id} className="break-keep text-sm leading-6">
-              {row.life_keyword || row.title}
-            </p>
-          ))
-        ) : (
-          <p className="text-sm text-black/35">생애 정보 없음</p>
-        )}
-      </aside>
+      </div>
     );
   }
 
   return (
-    <div className="grid min-h-56 grid-cols-[80px_minmax(0,1fr)_160px]">
-      <div className="border-r border-black/10 px-4 py-7 text-sm text-black/45">
-        {lifeRows[0]?.age || workRows[0]?.age}
-      </div>
+    <section className="mb-12 mt-28">
+      <p className="mb-5 max-w-xl text-2xl leading-7">
+        작품을 선택하면 발표 매체, 장르, 관련 인물과 문학사적 맥락을
+        함께 확인할 수 있습니다.
+      </p>
+      <div className="border-t border-black" />
+    </section>
+  );
+}
 
-      <div className="px-7 py-7">
+function TimelineList({
+  type,
+  years,
+  lifeRows,
+  workRows,
+  mode,
+  openWorkId,
+  setOpenWorkId,
+}: any) {
+  return (
+    <div className="space-y-8">
+      {years.map((year: string) => {
+        const life = lifeRows.filter((row: any) => row.year === year);
+        const works = workRows.filter((row: any) => row.year === year);
+
+        return (
+          <section key={`${type}-${year}`} className="border-t border-black pt-5">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <p className="font-serif text-5xl font-black tracking-[-0.12em]">
+                {year}
+              </p>
+              <p className="max-w-[160px] text-right text-xs leading-5 text-black/55">
+                {life[0]?.life_keyword || works[0]?.life_keyword || "Archive"}
+              </p>
+            </div>
+
+            {type === "life" ? (
+              <LifeContent
+                lifeRows={life}
+                workRows={works}
+                compact={mode === "work"}
+              />
+            ) : (
+              <WorkContent
+                workRows={works}
+                lifeRows={life}
+                compact={mode === "life"}
+                openWorkId={openWorkId}
+                setOpenWorkId={setOpenWorkId}
+              />
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function LifeContent({ lifeRows, workRows, compact }: any) {
+  if (compact) {
+    return (
+      <div className="space-y-2 text-sm leading-6">
         {lifeRows.length ? (
           lifeRows.map((row: any) => (
-            <article key={row.id} className="mb-7 last:mb-0">
-              <p className="mb-3 font-serif text-2xl font-black tracking-[-0.07em]">
+            <p key={row.id}>{row.life_keyword || row.title}</p>
+          ))
+        ) : (
+          <p className="text-black/35">생애 정보 없음</p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-7 md:grid-cols-[1fr_190px]">
+      <div>
+        {lifeRows.length ? (
+          lifeRows.map((row: any) => (
+            <article key={row.id} className="mb-6 last:mb-0">
+              <p className="mb-3 font-serif text-3xl font-black tracking-[-0.08em]">
                 {row.life_keyword || row.title}
               </p>
-              <p className="break-keep text-[15px] leading-8">
+              <p className="break-keep text-base leading-8">
                 {row.description || row.title}
               </p>
               <TagLine row={row} />
             </article>
           ))
         ) : (
-          <p className="text-sm text-black/35">생애 정보 없음</p>
+          <p className="text-black/35">생애 정보 없음</p>
         )}
       </div>
 
-      <aside className="border-l border-black/10 px-5 py-7">
-        <p className="mb-4 text-xs uppercase tracking-[0.18em] text-black/35">
-          Works
-        </p>
+      <aside className="border-l border-black pl-5">
+        <p className="mb-3 text-xs uppercase tracking-[0.18em]">Works</p>
         {workRows.length ? (
           workRows.map((work: any) => (
             <p
               key={work.id}
-              className="mb-3 break-keep font-serif text-lg leading-6 tracking-[-0.05em]"
+              className="mb-3 font-serif text-xl font-black leading-6 tracking-[-0.06em]"
             >
               {work.work_title || work.title}
             </p>
@@ -478,7 +492,7 @@ function LifePanel({ lifeRows, workRows, compact }: any) {
   );
 }
 
-function WorkPanel({
+function WorkContent({
   workRows,
   lifeRows,
   compact,
@@ -487,82 +501,53 @@ function WorkPanel({
 }: any) {
   if (compact) {
     return (
-      <aside className="min-h-36 px-5 py-6">
-        <p className="mb-3 font-serif text-xl font-black tracking-[-0.06em]">
-          Works
-        </p>
+      <div className="space-y-2 text-sm leading-6">
         {workRows.length ? (
           workRows.map((row: any) => (
-            <p key={row.id} className="break-keep text-sm leading-6">
-              {row.work_title || row.title}
-            </p>
+            <p key={row.id}>{row.work_title || row.title}</p>
           ))
         ) : (
-          <p className="text-sm text-black/35">작품 정보 없음</p>
+          <p className="text-black/35">작품 정보 없음</p>
         )}
-      </aside>
+      </div>
     );
   }
 
-  const keyword =
-    lifeRows.map((row: any) => row.life_keyword || row.title).filter(Boolean)[0] ||
-    "";
-
   return (
-    <div className="grid min-h-56 grid-cols-[80px_92px_minmax(0,1fr)_92px_130px]">
-      <div className="border-r border-black/10 px-4 py-7 text-sm text-black/45">
-        {workRows[0]?.age || lifeRows[0]?.age}
-      </div>
+    <div>
+      {workRows.length ? (
+        workRows.map((row: any) => {
+          const isOpen = openWorkId === row.id;
 
-      <div className="border-r border-black/10 px-4 py-7 text-sm leading-6 text-black/45">
-        {keyword}
-      </div>
+          return (
+            <article key={row.id} className="border-b border-black py-5">
+              <button
+                onClick={() => setOpenWorkId(isOpen ? null : row.id)}
+                className="grid w-full grid-cols-[80px_60px_minmax(0,1fr)_80px_130px] items-start gap-4 text-left outline-none"
+              >
+                <span className="text-sm">{row.month}</span>
+                <span className="text-sm">{row.day}</span>
+                <span className="font-serif text-3xl font-black leading-7 tracking-[-0.08em]">
+                  {row.work_title || row.title}
+                </span>
+                <span className="text-sm">{row.genre}</span>
+                <span className="text-sm">{row.publication || row.source}</span>
+              </button>
 
-      <div className="px-7 py-7">
-        {workRows.length ? (
-          workRows.map((row: any) => {
-            const isOpen = openWorkId === row.id;
-
-            return (
-              <article key={row.id} className="mb-3 last:mb-0">
-                <button
-                  onClick={() => setOpenWorkId(isOpen ? null : row.id)}
-                  className="grid w-full grid-cols-[70px_56px_minmax(0,1fr)] text-left text-[15px] leading-7 outline-none transition hover:translate-x-1"
-                >
-                  <span className="text-black/45">{row.month}</span>
-                  <span className="text-black/45">{row.day}</span>
-                  <span className="font-serif text-xl font-black tracking-[-0.06em]">
-                    {row.work_title || row.title}
-                  </span>
-                </button>
-
-                <AnimatePresence initial={false}>
-                  {isOpen && <WorkDetail row={row} />}
-                </AnimatePresence>
-              </article>
-            );
-          })
-        ) : (
-          <p className="text-sm text-black/35">작품 정보 없음</p>
-        )}
-      </div>
-
-      <div className="border-l border-black/10 px-3 py-7 text-center text-sm leading-7">
-        {workRows.map((row: any) => (
-          <p key={`${row.id}-genre`}>{row.genre}</p>
-        ))}
-      </div>
-
-      <div className="border-l border-black/10 px-4 py-7 text-center text-sm leading-7">
-        {workRows.map((row: any) => (
-          <p key={`${row.id}-pub`}>{row.publication || row.source}</p>
-        ))}
-      </div>
+              <AnimatePresence initial={false}>
+                {isOpen && <WorkDetail row={row} lifeRows={lifeRows} />}
+              </AnimatePresence>
+            </article>
+          );
+        })
+      ) : (
+        <p className="text-black/35">작품 정보 없음</p>
+      )}
     </div>
   );
 }
 
-function WorkDetail({ row }: any) {
+function WorkDetail({ row, lifeRows }: any) {
   return (
     <motion.div
       initial={{ height: 0, opacity: 0 }}
@@ -571,8 +556,8 @@ function WorkDetail({ row }: any) {
       transition={DETAIL_TRANSITION}
       className="overflow-hidden"
     >
-      <div className="my-5 grid gap-6 border-l-2 border-[#c779ad] bg-[#efe9dc] p-5 md:grid-cols-[120px_1fr]">
-        <div className="h-44 w-28 overflow-hidden bg-white">
+      <div className="mt-6 grid gap-6 bg-[#f7d6d8] p-5 md:grid-cols-[130px_1fr]">
+        <div className="h-44 w-28 overflow-hidden border border-black bg-white">
           {row.image_url ? (
             <img
               src={row.image_url}
@@ -580,7 +565,7 @@ function WorkDetail({ row }: any) {
               className="h-full w-full object-cover grayscale"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-center text-xs text-black/35">
+            <div className="flex h-full w-full items-center justify-center text-center text-xs text-black/40">
               이미지
               <br />
               없음
@@ -589,11 +574,11 @@ function WorkDetail({ row }: any) {
         </div>
 
         <div>
-          <p className="mb-2 font-serif text-3xl font-black tracking-[-0.08em]">
+          <p className="mb-2 font-serif text-4xl font-black tracking-[-0.1em]">
             {row.work_title || row.title}
           </p>
 
-          <p className="mb-5 text-xs uppercase tracking-[0.18em] text-black/40">
+          <p className="mb-5 text-xs uppercase tracking-[0.18em] text-black/55">
             {[row.genre, row.publication || row.source].filter(Boolean).join(" · ")}
           </p>
 
@@ -601,17 +586,24 @@ function WorkDetail({ row }: any) {
             {row.detail || row.description}
           </p>
 
-          <div className="mt-5 space-y-2 text-sm text-black/60">
+          <div className="mt-5 space-y-2 text-sm text-black/70">
+            {lifeRows?.[0]?.life_keyword && (
+              <p>
+                <span className="mr-2 font-bold">동시기 생애</span>
+                {lifeRows[0].life_keyword}
+              </p>
+            )}
+
             {row.related_people && (
               <p>
-                <span className="mr-2 font-bold text-black">관련 인물</span>
+                <span className="mr-2 font-bold">관련 인물</span>
                 {row.related_people}
               </p>
             )}
 
             {row.historical_context && (
               <p>
-                <span className="mr-2 font-bold text-black">역사 맥락</span>
+                <span className="mr-2 font-bold">역사 맥락</span>
                 {row.historical_context}
               </p>
             )}
@@ -636,8 +628,8 @@ function TagLine({ row, boxed = false }: any) {
           key={tag}
           className={
             boxed
-              ? "border border-black/15 bg-[#f4f1e5] px-2 py-1"
-              : "text-black/35"
+              ? "rounded-full border border-black px-3 py-1"
+              : "text-black/40"
           }
         >
           #{tag}
